@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+  <meta charset="UTF-8">
+  <title th:text="|${pageName}|">유저 정보</title>
+  <style>
+    body {
+        font-family: 'Roboto', sans-serif;
+        background-color: #f8f9fa;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+    }
+
+    .container {
+        background-color: #fff;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+        text-align: center;
+    }
+
+    h1 a {
+        color: #007bff;
+        text-decoration: none;
+    }
+
+    h2 {
+        color: #343a40;
+        margin-bottom: 20px;
+    }
+
+    .user-info {
+        margin-top: 20px;
+        text-align: left;
+        color: #555;
+    }
+
+    .user-info div {
+        margin: 10px 0;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+    }
+
+    th, td {
+        padding: 8px;
+        border-bottom: 1px solid #ddd;
+        text-align: left;
+    }
+
+    th {
+        background-color: #f2f2f2;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="container">
+  <h1><a th:href="@{http://localhost:8000/main}">[[${pageName}]]</a></h1>
+  <hr />
+  <h2>유저 정보</h2>
+  <div class="user-info">
+    <div th:text="|Login ID: ${user.loginId}|"></div>
+    <div th:text="|Nickname: ${user.nickname}|"></div>
+    <div th:text="|Role: ${user.role}|"></div>
+    <button class="btn btn-danger" th:attr="onclick=|deleteUser()|">회원 탈퇴</button>
+  </div>
+
+  <h2>검사 차량 정보</h2>
+  <table>
+    <thead>
+    <tr>
+      <th>차량 번호</th>
+      <th>스크래치 개수</th>
+      <th>장착 불량 개수</th>
+      <th>외관 손상 개수</th>
+      <th>단차 손상 개수</th>
+      <th>총 불량 개수</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="car : ${carInfoList}">
+      <td th:text="${car.carNumber}"></td>
+      <td th:text="${car.scratch}"></td>
+      <td th:text="${car.installation}"></td>
+      <td th:text="${car.exterior}"></td>
+      <td th:text="${car.gap}"></td>
+      <td th:text="${car.totalDefects}"></td>
+    </tr>
+    </tbody>
+  </table>
+</div>
+
+<script>
+  function deleteUser() {
+      if(confirm("Are you sure you want to delete your information all?")) {
+          fetch(`/users/exit`, {
+              method: 'DELETE'
+          })
+          .then(response => {
+              if(response.ok) {
+                  location.reload();
+              } else {
+                  console.error('Failed to delete user');
+              }
+          })
+          .catch(error => console.error('Error:', error));
+      }
+  }
+</script>
+
+</body>
+
+</html>
