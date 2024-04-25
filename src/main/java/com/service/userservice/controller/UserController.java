@@ -2,6 +2,8 @@ package com.service.userservice.controller;
 
 import com.service.userservice.domain.User;
 import com.service.userservice.dto.CarDto;
+import com.service.userservice.rabbitmq.MessageReceiver;
+import com.service.userservice.rabbitmq.RabbitMQService;
 import com.service.userservice.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +17,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -22,11 +25,8 @@ import java.util.List;
 @RequestMapping("/users")
 public class UserController {
 
-    private final UserService userService;
-    private final RabbitTemplate rabbitTemplate;
-
-    @GetMapping("/info")
-    public String userInfo(Model model, @CookieValue(name = "userId") Long userId) {
+    @GetMapping("/info/{userId}")
+    public String userInfo(Model model, @PathVariable("userId") Long userId) {
         model.addAttribute("loginType", "main");
         model.addAttribute("pageName", "Sandwich AI");
 
@@ -39,11 +39,12 @@ public class UserController {
 
         model.addAttribute("user", user);
 
-        List<CarDto> carInfoList = userService.userRequestCarInfo(userId);
-        model.addAttribute("carInfoList", carInfoList);
-
         return "info";
     }
+
+    private final UserService userService;
+    private final RabbitMQService rabbitMQService;
+    private final MessageReceiver messageReceiver;
 
     @ResponseBody
     @DeleteMapping("/exit")
@@ -58,9 +59,21 @@ public class UserController {
 
         if (success) {
             log.info("delete user successful");
+            rabbitMQService.sendMessageToInspectionService(userId);
             return ResponseEntity.status(HttpStatus.OK).build();
         }
 
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed delete user request");
+
+    }
+
+    @ResponseBody
+    @GetMapping("mq/test")
+    public ResponseEntity<?> mqTest(@CookieValue(name = "userId") Long userId) {
+        rabbitMQService.requestCarDtoList(userId);
+
+        List<CarDto> carDtoList = messageReceiver.waitForResponse();
+
+        return ResponseEntity.ok(carDtoList);
     }
 }
