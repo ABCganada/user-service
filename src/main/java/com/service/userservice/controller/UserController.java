@@ -46,16 +46,11 @@ public class UserController {
 
         rabbitMQService.requestCarDtoList(userId);
 
-        CompletableFuture<List<CarDto>> carDtoListFuture = messageReceiver.waitForResponse().thenApply(carDtoList -> {
+        CompletableFuture<List<CarDto>> carDtoListFuture = messageReceiver.waitForResponse();
+
+        carDtoListFuture.thenAccept(carDtoList -> {
             model.addAttribute("carDtoList", carDtoList);
-
-            return carDtoList;
-        });
-
-        model.addAttribute("carDtoList", carDtoListFuture);
-//        carDtoListFuture.thenAccept(carDtoList -> {
-//            model.addAttribute("carDtoList", carDtoList);
-//        }).join();
+        }).join();
 
         return "info";
     }

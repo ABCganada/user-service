@@ -87,7 +87,16 @@
       <th>총 불량 개수</th>
     </tr>
     </thead>
-    <tbody id="carInfoTableBody"> <!-- ID 추가 -->
+    <tbody>
+    <!-- 차량 정보를 반복하여 출력 -->
+    <tr th:each="car : ${carDtoList}">
+      <td th:text="${car.carNumber}">차량 번호</td>
+      <td th:text="${car.scratch}">스크래치 개수</td>
+      <td th:text="${car.installation}">장착 불량 개수</td>
+      <td th:text="${car.exterior}">외관 손상 개수</td>
+      <td th:text="${car.gap}">단차 손상 개수</td>
+      <td th:text="${car.totalDefects}">총 불량 개수</td>
+    </tr>
     </tbody>
   </table>
 </div>
