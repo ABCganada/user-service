@@ -8,6 +8,7 @@ import com.service.userservice.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.coyote.Response;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.http.HttpStatus;
@@ -25,6 +26,10 @@ import java.util.concurrent.CompletableFuture;
 @RequestMapping("/users")
 public class UserController {
 
+    private final UserService userService;
+    private final RabbitMQService rabbitMQService;
+    private final MessageReceiver messageReceiver;
+
     @GetMapping("/info/{userId}")
     public String userInfo(Model model, @PathVariable("userId") Long userId) {
         model.addAttribute("loginType", "main");
@@ -39,12 +44,21 @@ public class UserController {
 
         model.addAttribute("user", user);
 
+        rabbitMQService.requestCarDtoList(userId);
+
+        CompletableFuture<List<CarDto>> carDtoListFuture = messageReceiver.waitForResponse().thenApply(carDtoList -> {
+            model.addAttribute("carDtoList", carDtoList);
+
+            return carDtoList;
+        });
+
+        model.addAttribute("carDtoList", carDtoListFuture);
+//        carDtoListFuture.thenAccept(carDtoList -> {
+//            model.addAttribute("carDtoList", carDtoList);
+//        }).join();
+
         return "info";
     }
-
-    private final UserService userService;
-    private final RabbitMQService rabbitMQService;
-    private final MessageReceiver messageReceiver;
 
     @ResponseBody
     @DeleteMapping("/exit")
@@ -69,11 +83,9 @@ public class UserController {
 
     @ResponseBody
     @GetMapping("mq/test")
-    public ResponseEntity<?> mqTest(@CookieValue(name = "userId") Long userId) {
+    public CompletableFuture<ResponseEntity<?>> mqTest(@CookieValue(name = "userId") Long userId) {
         rabbitMQService.requestCarDtoList(userId);
 
-        List<CarDto> carDtoList = messageReceiver.waitForResponse();
-
-        return ResponseEntity.ok(carDtoList);
+        return messageReceiver.waitForResponse().thenApply(ResponseEntity::ok);
     }
 }

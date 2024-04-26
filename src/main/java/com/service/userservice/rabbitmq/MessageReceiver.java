@@ -6,28 +6,22 @@ import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 @Component
 public class MessageReceiver {
 
-    private List<CarDto> carDtoList;
+    private CompletableFuture<List<CarDto>> completableFuture;
 
     @RabbitListener(queues = "dtoQ")
     public void receiveDtoQ(List<CarDto> carDtoList) {
-        this.carDtoList = carDtoList;
+        if (completableFuture != null && !completableFuture.isDone()) {
+            completableFuture.complete(carDtoList);
+        }
     }
 
-    public List<CarDto> waitForResponse() {
-        while (carDtoList == null) {
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-        }
-
-        List<CarDto> result = carDtoList;
-        carDtoList = null;
-        return result;
+    public CompletableFuture<List<CarDto>> waitForResponse() {
+        completableFuture = new CompletableFuture<>();
+        return completableFuture;
     }
 }
