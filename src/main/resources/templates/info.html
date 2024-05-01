@@ -90,7 +90,7 @@
     <tbody>
     <!-- 차량 정보를 반복하여 출력 -->
     <tr th:each="car : ${carDtoList}">
-      <td th:text="${car.carNumber}">차량 번호</td>
+      <td><a th:href="@{|/api/result/${car.carNumber}|}"><span th:text="${car.carNumber}">차량 번호</span></a></td>
       <td th:text="${car.scratch}">스크래치 개수</td>
       <td th:text="${car.installation}">장착 불량 개수</td>
       <td th:text="${car.exterior}">외관 손상 개수</td>
