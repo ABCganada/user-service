@@ -1,7 +1,6 @@
 package com.service.userservice.rabbitmq;
 
 import com.service.userservice.dto.CarDto;
-import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 
@@ -20,7 +19,7 @@ public class MessageReceiver {
         }
     }
 
-    public CompletableFuture<List<CarDto>> waitForResponse() {
+    public CompletableFuture<List<CarDto>> getCarDtoListFuture() {
         completableFuture = new CompletableFuture<>();
         return completableFuture;
     }

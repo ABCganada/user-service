@@ -46,7 +46,7 @@ public class UserController {
 
         rabbitMQService.requestCarDtoList(userId);
 
-        CompletableFuture<List<CarDto>> carDtoListFuture = messageReceiver.waitForResponse();
+        CompletableFuture<List<CarDto>> carDtoListFuture = messageReceiver.getCarDtoListFuture();
 
         carDtoListFuture.thenAccept(carDtoList -> {
             model.addAttribute("carDtoList", carDtoList);
@@ -81,6 +81,6 @@ public class UserController {
     public CompletableFuture<ResponseEntity<?>> mqTest(@CookieValue(name = "userId") Long userId) {
         rabbitMQService.requestCarDtoList(userId);
 
-        return messageReceiver.waitForResponse().thenApply(ResponseEntity::ok);
+        return messageReceiver.getCarDtoListFuture().thenApply(ResponseEntity::ok);
     }
 }
