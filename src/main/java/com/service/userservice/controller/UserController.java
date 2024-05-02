@@ -2,15 +2,11 @@ package com.service.userservice.controller;
 
 import com.service.userservice.domain.User;
 import com.service.userservice.dto.CarDto;
-import com.service.userservice.rabbitmq.MessageReceiver;
+import com.service.userservice.rabbitmq.RabbitMQReceiver;
 import com.service.userservice.rabbitmq.RabbitMQService;
 import com.service.userservice.service.UserService;
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.coyote.Response;
-import org.springframework.amqp.rabbit.annotation.RabbitListener;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -28,7 +24,7 @@ public class UserController {
 
     private final UserService userService;
     private final RabbitMQService rabbitMQService;
-    private final MessageReceiver messageReceiver;
+    private final RabbitMQReceiver rabbitMQReceiver;
 
     @GetMapping("/info/{userId}")
     public String userInfo(Model model, @PathVariable("userId") Long userId) {
@@ -44,13 +40,10 @@ public class UserController {
 
         model.addAttribute("user", user);
 
-        rabbitMQService.requestCarDtoList(userId);
-
-        CompletableFuture<List<CarDto>> carDtoListFuture = messageReceiver.getCarDtoListFuture();
-
-        carDtoListFuture.thenAccept(carDtoList -> {
-            model.addAttribute("carDtoList", carDtoList);
-        }).join();
+        //메세지 큐 요청
+        rabbitMQService.sendMessageForCarDto(userId);
+        CompletableFuture<List<CarDto>> carDtoListFuture = rabbitMQReceiver.getCarDtoListFuture();
+        carDtoListFuture.thenAccept(carDtoList -> model.addAttribute("carDtoList", carDtoList)).join();
 
         return "info";
     }
@@ -68,7 +61,7 @@ public class UserController {
 
         if (success) {
             log.info("delete user successful");
-            rabbitMQService.sendMessageToInspectionService(userId);
+            rabbitMQService.sendMessageForDeletion(userId);
             return ResponseEntity.status(HttpStatus.OK).build();
         }
 
@@ -79,8 +72,8 @@ public class UserController {
     @ResponseBody
     @GetMapping("mq/test")
     public CompletableFuture<ResponseEntity<?>> mqTest(@CookieValue(name = "userId") Long userId) {
-        rabbitMQService.requestCarDtoList(userId);
+        rabbitMQService.sendMessageForCarDto(userId);
 
-        return messageReceiver.getCarDtoListFuture().thenApply(ResponseEntity::ok);
+        return rabbitMQReceiver.getCarDtoListFuture().thenApply(ResponseEntity::ok);
     }
 }

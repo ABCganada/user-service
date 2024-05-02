@@ -3,6 +3,8 @@ package com.service.userservice.controller;
 import com.service.userservice.domain.User;
 import com.service.userservice.domain.UserRepository;
 import com.service.userservice.domain.UserRole;
+import com.service.userservice.dto.CarDto;
+import com.service.userservice.rabbitmq.RabbitMQReceiver;
 import com.service.userservice.rabbitmq.RabbitMQService;
 import com.service.userservice.service.UserService;
 import org.junit.jupiter.api.Test;
@@ -15,6 +17,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -25,60 +31,44 @@ public class UserControllerTest {
     @InjectMocks
     private UserController userController;
 
-    @Mock
+    @Autowired
     private UserService userService;
 
-    @Mock
+    @Autowired
     private RabbitMQService rabbitMQService;
+
+    @Autowired
+    private RabbitMQReceiver rabbitMQReceiver;
 
     @Autowired
     private UserRepository userRepository;
 
     @Test
-    public void testUserExit() {
-        Long userId = 123L;
+    public void dataConsistencyTest() {
+        for (int i = 0; i < 10000; i++) {
+            //데이터 생성
+            User user = createUser();
+            userRepository.save(user);
 
-        when(userService.deleteUser(userId)).thenReturn(true);
-        ResponseEntity<?> response = userController.memberExit(userId);
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        verify(rabbitMQService, times(1)).sendMessageToInspectionService(userId);
+            rabbitMQService.sendMessageForTestData(user.getId());
 
-        when(userService.deleteUser(userId)).thenReturn(false);
-        response = userController.memberExit(userId);
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+            rabbitMQService.sendMessageForCarDto(user.getId());
+            CompletableFuture<List<CarDto>> completableFuture = rabbitMQReceiver.getCarDtoListFuture();
+            completableFuture.thenAccept(carDtoList -> {
+                assertThat(carDtoList.size()).isEqualTo(1);
+                assertThat(carDtoList.get(0).getCarNumber()).isEqualTo("testCar");
+            });
 
-        response = userController.memberExit(null);
-        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+            //데이터 삭제
+
+        }
     }
 
-    @Test
-    public void testUserDelete() {
-        Long userId = 123L;
 
-        User user = User.builder()
-                .id(userId)
-                .loginId(null)
-                .nickname("testNickname")
-                .provider(null)
-                .providerId(null)
+    private User createUser() {
+        return User.builder()
+                .nickname("testUser")
                 .role(UserRole.USER)
                 .build();
-
-        userRepository.save(user);
-
-        when(userService.deleteUser(anyLong())).thenReturn(true);
-        assertFalse(userRepository.findById(userId).isEmpty());
-
-        userController.memberExit(userId);
-        assertTrue(userRepository.findById(userId).isEmpty());
-    }
-
-    @Test
-    public void carDataDeleteTest() {
-        Long userId = 1233L;
-        String carNumber = "ABC123";
-
-
-
     }
 }

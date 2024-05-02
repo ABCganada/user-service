@@ -26,13 +26,8 @@ public class RabbitMQConfig {
     private String routingKey;
 
     @Bean
-    public Queue queue() {
-        return new Queue(queueName, true);
-    }
-
-    @Bean
-    public Queue dtoQ() {
-        return new Queue("dtoQ", true);
+    public Queue userCarInfoQueue() {
+        return new Queue("user-car-info-queue", true);
     }
 
     @Bean
@@ -41,13 +36,8 @@ public class RabbitMQConfig {
     }
 
     @Bean
-    public Binding binding(Queue queue, DirectExchange exchange) {
-        return BindingBuilder.bind(queue).to(exchange).with(routingKey);
-    }
-
-    @Bean
-    public Binding bindingDtoQ(Queue dtoQ, DirectExchange exchange) {
-        return BindingBuilder.bind(dtoQ).to(exchange).with("dto-routing-key");
+    public Binding bindingUserCarInfoQueue(Queue queue, DirectExchange exchange) {
+        return BindingBuilder.bind(queue).to(exchange).with("user.car.info");
     }
 
     @Bean
